@@ -1,36 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎮 오늘의 퀘스트
 
-## Getting Started
+초등학교 6학년 아이들이 재미있게 사용할 수 있는 할 일 관리 웹 서비스입니다. 게임처럼 퀘스트를 수행하고 포인트를 모아 보상을 받을 수 있어요!
 
-First, run the development server:
+## ✨ 주요 기능
+
+### 🎯 퀘스트 시스템
+
+- **퀘스트 선택**: 방 청소, 숙제하기, 책 읽기 등 다양한 퀘스트 중에서 선택
+- **난이도별 포인트**: 쉬움(10점), 보통(20점), 어려움(30점)
+
+### 🏆 게임화 요소
+
+- **레벨 시스템**: 경험치를 쌓아 레벨업
+- **연속 달성 보너스**: 매일 연속으로 퀘스트 완료 시 추가 보상
+- **일일 출석 보너us**: 매일 접속 시 5포인트 추가 지급
+
+### 🏪 보상 상점
+
+- **유튜브 시청**: 10분(20점), 20분(35점)
+- **게임 플레이**: 15분(30점), 30분(55점)
+- **간식**: 일반 간식(40점), 특별 간식(60점)
+
+### 👤 캐릭터 프로필
+
+- **레벨별 칭호**: 초보 모험가 → 견습 모험가 → 숙련 모험가 → 전문 모험가 → 마스터 모험가 → 전설의 모험가
+- **업적 시스템**: 연속 달성, 포인트 달성 등 다양한 업적
+- **진행률 시각화**: 다음 레벨까지의 진행 상황
+
+## 🚀 시작하기
+
+### 설치
 
 ```bash
+# 의존성 설치
+npm install
+
+# 데이터베이스 초기화
+npm run init-db
+
+# 개발 서버 실행
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 사용법
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **퀘스트 고르기**: 원하는 할 일을 선택
+2. **퀘스트 보드**: 선택한 퀘스트를 관리하고 완료 체크
+3. **보상 상점**: 모은 포인트로 원하는 보상 교환
+4. **내 캐릭터**: 레벨과 업적 확인
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🛠️ 기술 스택
 
-## Learn More
+- **Frontend**: Next.js 14, React, TypeScript
+- **Styling**: Tailwind CSS
+- **Animation**: Framer Motion
+- **Icons**: Lucide React
+- **Database**: SQLite (better-sqlite3)
 
-To learn more about Next.js, take a look at the following resources:
+## 🎨 UI/UX 특징
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **게임 같은 디자인**: 브롤스타즈와 같은 게임 느낌의 UI
+- **반응형 디자인**: 모바일과 데스크톱 모두 지원
+- **애니메이션**: 부드러운 전환과 인터랙션
+- **직관적인 네비게이션**: 탭 기반의 쉬운 화면 전환
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 💡 교육적 가치
 
-## Deploy on Vercel
+- **자기 관리**: 스스로 할 일을 계획하고 실행
+- **동기부여**: 게임적 요소로 지속적인 참여 유도
+- **시간 관리**: 보상 시간을 통한 균형 잡힌 생활 습관
+- **성취감**: 퀘스트 완료와 레벨업을 통한 성취감 제공
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🔮 향후 계획
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [ ] 부모님 계정 연동
+- [ ] 퀘스트 커스터마이징
+- [ ] 친구와의 경쟁 시스템
+- [ ] 더 다양한 보상 옵션
+- [ ] 데이터 백업 및 동기화
+
+## 📱 지원 환경
+
+- Chrome, Safari, Firefox 등 최신 브라우저
+- 모바일 및 태블릿 지원
+- 반응형 웹 디자인
+
+---
+
+**🎮 오늘의 퀘스트로 재미있게 할 일을 관리하고 보상을 받아보세요!**
