@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import QuestSelector from "@/components/QuestSelector";
 import QuestBoard from "@/components/QuestBoard";
 import RewardShop from "@/components/RewardShop";
+import RewardHistory from "@/components/RewardHistory";
 import CharacterProfile from "@/components/CharacterProfile";
 import { Quest, User } from "@/types";
 
@@ -23,7 +24,7 @@ export default function Home() {
   const [selectedQuests, setSelectedQuests] = useState<Quest[]>([]);
   const [completedQuests, setCompletedQuests] = useState<Quest[]>([]);
   const [activeTab, setActiveTab] = useState<
-    "quests" | "board" | "shop" | "profile"
+    "quests" | "board" | "shop" | "history" | "profile"
   >("quests");
 
   // 데이터베이스에서 사용자 정보 로드
@@ -234,7 +235,7 @@ export default function Home() {
       <header className="bg-white/20 backdrop-blur-md border-b border-white/30">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-white">🎮 수호의 퀘스트</h1>
+            <h1 className="text-3xl font-bold text-white">수호의 일일 관리</h1>
             <div className="flex items-center space-x-4 text-white">
               <div className="bg-white/20 px-3 py-2 rounded-lg">
                 <span className="text-sm">⭐ {user.points} 포인트</span>
@@ -255,13 +256,19 @@ export default function Home() {
               { id: "quests", label: "퀘스트 고르기", icon: "🎯" },
               { id: "board", label: "퀘스트 보드", icon: "📋" },
               { id: "shop", label: "보상 상점", icon: "🏪" },
+              { id: "history", label: "교환 내역", icon: "📋" },
               { id: "profile", label: "내 캐릭터", icon: "👤" },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() =>
                   setActiveTab(
-                    tab.id as "quests" | "board" | "shop" | "profile"
+                    tab.id as
+                      | "quests"
+                      | "board"
+                      | "shop"
+                      | "history"
+                      | "profile"
                   )
                 }
                 className={`flex-1 py-3 px-4 rounded-t-lg transition-all ${
@@ -300,6 +307,8 @@ export default function Home() {
         {activeTab === "shop" && (
           <RewardShop userPoints={user.points} onSpendPoints={spendPoints} />
         )}
+
+        {activeTab === "history" && <RewardHistory userId={user.id} />}
 
         {activeTab === "profile" && <CharacterProfile user={user} />}
       </div>

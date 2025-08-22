@@ -23,7 +23,9 @@ export default function QuestBoard({
     0
   );
   const progress =
-    quests.length > 0 ? (completedQuests.length / quests.length) * 100 : 0;
+    quests.length > 0
+      ? Math.min((completedQuests.length / quests.length) * 100, 100)
+      : 0;
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -87,16 +89,28 @@ export default function QuestBoard({
         <div className="mb-6">
           <div className="flex justify-between text-white mb-2">
             <span>진행률</span>
-            <span>{Math.round(progress)}%</span>
+            <span>
+              {quests.length > 0 && completedQuests.length > quests.length
+                ? "100% (완료!)"
+                : `${Math.round(progress)}%`}
+            </span>
           </div>
           <div className="w-full bg-white/30 rounded-full h-4">
             <motion.div
               className="bg-gradient-to-r from-green-400 to-blue-500 h-4 rounded-full"
               initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
+              animate={{ width: `${Math.min(progress, 100)}%` }}
               transition={{ duration: 0.8, ease: "easeOut" }}
             />
           </div>
+          {quests.length > 0 && completedQuests.length > quests.length && (
+            <div className="text-center mt-2">
+              <span className="text-green-400 text-sm font-medium">
+                🎉 모든 퀘스트를 완료했습니다! 추가 퀘스트를 완료하여 더 많은
+                포인트를 획득할 수 있어요!
+              </span>
+            </div>
+          )}
         </div>
 
         {/* 통계 */}
@@ -126,9 +140,9 @@ export default function QuestBoard({
             진행 중인 퀘스트
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {quests.map((quest) => (
+            {quests.map((quest, i) => (
               <motion.div
-                key={quest.id}
+                key={i}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-white rounded-lg p-4 shadow-lg"
@@ -136,14 +150,11 @@ export default function QuestBoard({
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center space-x-3">
                     <span className="text-3xl">{quest.icon}</span>
-                    <div>
-                      <h4 className="font-semibold text-gray-800">
-                        {quest.title}
-                      </h4>
-                      <p className="text-sm text-gray-600">
-                        {quest.description}
-                      </p>
-                    </div>
+
+                    <h4 className="font-semibold text-gray-800">
+                      {quest.title}
+                    </h4>
+                    <p className="text-sm text-gray-600">{quest.description}</p>
                   </div>
                   <span
                     className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 ${getDifficultyColor(
@@ -190,9 +201,9 @@ export default function QuestBoard({
             완료된 퀘스트
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {completedQuests.map((quest) => (
+            {completedQuests.map((quest, i) => (
               <motion.div
-                key={quest.id}
+                key={i}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="bg-green-50 border-2 border-green-200 rounded-lg p-4"
@@ -232,16 +243,6 @@ export default function QuestBoard({
           </div>
         </div>
       )}
-
-      {/* 힌트 */}
-      <div className="text-center text-white/80">
-        <p className="text-lg">
-          💡 모든 퀘스트를 완료하면 보상 상점에서 포인트를 사용할 수 있어요!
-        </p>
-        <p className="text-sm mt-2">
-          유튜브 시청, 게임 플레이 등 다양한 보상을 선택할 수 있어요
-        </p>
-      </div>
     </div>
   );
 }

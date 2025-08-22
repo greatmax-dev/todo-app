@@ -16,7 +16,6 @@ export default function QuestSelector({
   selectedQuests,
   onRemoveQuest,
 }: QuestSelectorProps) {
-  const [selectedCategory, setSelectedCategory] = useState<string>("전체");
   const [availableQuests, setAvailableQuests] = useState<Quest[]>([]);
 
   // 데이터베이스에서 퀘스트 로드
@@ -35,12 +34,6 @@ export default function QuestSelector({
 
     loadQuests();
   }, []);
-
-  const categories = ["전체", "청소", "학습", "예술", "건강", "가족"];
-  const filteredQuests =
-    selectedCategory === "전체"
-      ? availableQuests
-      : availableQuests.filter((quest) => quest.category === selectedCategory);
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -75,52 +68,39 @@ export default function QuestSelector({
         <h2 className="text-3xl font-bold text-white mb-2">
           🎯 오늘의 퀘스트를 고르세요!
         </h2>
-
-        <div className="mt-4 bg-white/20 rounded-lg p-4 inline-block">
-          <p className="text-white font-semibold">
-            선택된 퀘스트: {selectedQuests.length}
-          </p>
-        </div>
-      </div>
-
-      {/* 카테고리 필터 */}
-      <div className="flex flex-wrap justify-center gap-2">
-        {categories.map((category) => (
-          <button
-            key={category}
-            onClick={() => setSelectedCategory(category)}
-            className={`px-4 py-2 rounded-full transition-all ${
-              selectedCategory === category
-                ? "bg-white text-purple-600 font-semibold"
-                : "bg-white/20 text-white hover:bg-white/30"
-            }`}
-          >
-            {category}
-          </button>
-        ))}
       </div>
 
       {/* 선택된 퀘스트 미리보기 */}
       {selectedQuests.length > 0 && (
         <div className="bg-white/20 rounded-lg p-6">
           <h3 className="text-xl font-semibold text-white mb-4">
-            선택된 퀘스트
+            선택된 퀘스트 ({selectedQuests.length})
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {selectedQuests.map((quest) => (
+            {selectedQuests.map((quest, i) => (
               <motion.div
-                key={quest.id}
+                key={i}
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 className="bg-white rounded-lg p-4 flex items-center justify-between"
               >
                 <div className="flex items-center space-x-3">
                   <span className="text-2xl">{quest.icon}</span>
-                  <div>
+                  <div className="flex-1">
                     <h4 className="font-semibold text-gray-800">
                       {quest.title}
                     </h4>
-                    <p className="text-sm text-gray-600">{quest.description}</p>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <span className="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
+                        {quest.category}
+                      </span>
+                      <span className="inline-block bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-semibold">
+                        ⭐ {quest.points} 포인트
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {quest.description}
+                    </p>
                   </div>
                 </div>
                 <button
@@ -137,7 +117,7 @@ export default function QuestSelector({
 
       {/* 사용 가능한 퀘스트 목록 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredQuests.map((quest) => {
+        {availableQuests.map((quest) => {
           const isSelected = selectedQuests.some((q) => q.id === quest.id);
 
           return (
@@ -162,24 +142,29 @@ export default function QuestSelector({
               </div>
 
               {/* 퀘스트 내용 */}
-              <div className="text-center mb-4">
-                <span className="text-4xl mb-3 block">{quest.icon}</span>
-                <h3 className="text-lg font-bold text-gray-800 mb-2">
-                  {quest.title}
-                </h3>
-                <p className="text-gray-600 text-sm mb-3">
+              <div className="mb-4">
+                {/* 헤더: 아이콘, 제목, 난이도 */}
+                <div className="flex items-center space-x-3 mb-3">
+                  <span className="text-3xl">{quest.icon}</span>
+                  <div className="flex-1 text-left">
+                    <h3 className="text-lg font-bold text-gray-800">
+                      {quest.title}
+                    </h3>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <span className="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
+                        {quest.category}
+                      </span>
+                      <span className="inline-block bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-semibold">
+                        ⭐ {quest.points} 포인트
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 설명 */}
+                <p className="text-gray-600 text-sm text-left">
                   {quest.description}
                 </p>
-                <div className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-semibold">
-                  ⭐ {quest.points} 포인트
-                </div>
-              </div>
-
-              {/* 카테고리 태그 */}
-              <div className="text-center mb-4">
-                <span className="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
-                  {quest.category}
-                </span>
               </div>
 
               {/* 액션 버튼 */}
@@ -204,14 +189,6 @@ export default function QuestSelector({
             </motion.div>
           );
         })}
-      </div>
-
-      {/* 힌트 */}
-      <div className="text-center text-white/80">
-        <p className="text-lg">💡 퀘스트를 완료하면 포인트를 받을 수 있어요!</p>
-        <p className="text-sm mt-2">
-          포인트는 보상 상점에서 유튜브나 게임 시간과 교환할 수 있어요
-        </p>
       </div>
     </div>
   );

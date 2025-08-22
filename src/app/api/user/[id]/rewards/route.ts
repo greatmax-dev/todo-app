@@ -8,7 +8,28 @@ export async function GET(
 ) {
   try {
     const rewards = rewardService.getUserRewards(params.id);
-    return NextResponse.json(rewards);
+
+    // 사용자 정보도 함께 반환
+    const user = userService.getUser(params.id);
+
+    return NextResponse.json({
+      rewards: rewards,
+      user: user
+        ? {
+            id: user.id,
+            name: user.name,
+            points: user.points,
+            totalPoints: user.totalPoints,
+          }
+        : null,
+      summary: {
+        totalRewardsUsed: rewards.length,
+        totalPointsSpent: rewards.reduce(
+          (sum, reward) => sum + reward.points,
+          0
+        ),
+      },
+    });
   } catch (error) {
     console.error("사용자 보상 조회 오류:", error);
     return NextResponse.json(

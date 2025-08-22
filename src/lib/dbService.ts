@@ -36,7 +36,9 @@ export const userService = {
   // 사용자 업데이트
   updateUser: (user: Partial<User> & { id: string }): void => {
     const fields = Object.keys(user).filter((key) => key !== "id");
-    const values = Object.values(user).filter((value) => value !== undefined);
+    const values = fields
+      .map((field) => user[field as keyof typeof user])
+      .filter((value) => value !== undefined);
 
     if (fields.length === 0) return;
 
@@ -191,34 +193,20 @@ export const questService = {
 
   // 퀘스트 완료
   completeQuest: (userId: string, questId: string): void => {
-    // 트랜잭션 시작
-    const transaction = db.transaction(() => {
-      // 퀘스트 상태를 completed로 업데이트 (이미 completed인 경우도 처리)
-      const updateStmt = db.prepare(`
-        UPDATE user_quests 
-        SET status = 'completed', completedAt = CURRENT_TIMESTAMP
-        WHERE userId = ? AND questId = ?
+    try {
+      // 매번 새로운 완료 기록 생성 (중복 허용)
+      const insertStmt = db.prepare(`
+        INSERT INTO user_quests (userId, questId, status, completedAt)
+        VALUES (?, ?, 'completed', ?)
       `);
-      updateStmt.run(userId, questId);
-
-      // 만약 해당 퀘스트가 user_quests에 없다면 새로 추가
-      const checkStmt = db.prepare(`
-        SELECT COUNT(*) as count FROM user_quests 
-        WHERE userId = ? AND questId = ?
-      `);
-      const result = checkStmt.get(userId, questId) as { count: number };
-
-      if (result.count === 0) {
-        const insertStmt = db.prepare(`
-          INSERT INTO user_quests (userId, questId, status, completedAt)
-          VALUES (?, ?, 'completed', CURRENT_TIMESTAMP)
-        `);
-        insertStmt.run(userId, questId);
-      }
-    });
-
-    // 트랜잭션 실행
-    transaction();
+      insertStmt.run(userId, questId, new Date().toISOString());
+    } catch (error) {
+      console.error(
+        `퀘스트 완료 실패 - userId: ${userId}, questId: ${questId}`,
+        error
+      );
+      throw error; // 상위로 오류 전파
+    }
   },
 };
 
