@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Quest } from "@/types";
 import { motion } from "framer-motion";
 import { CheckCircle, XCircle, Star, Trophy, Target } from "lucide-react";
@@ -22,10 +23,14 @@ export default function QuestBoard({
     (sum, quest) => sum + quest.points,
     0
   );
-  const progress =
-    quests.length > 0
-      ? Math.min((completedQuests.length / quests.length) * 100, 100)
-      : 0;
+  
+  // 오늘 해야 할 퀘스트 = 선택된 퀘스트 + 완료된 퀘스트
+  const todayTotalQuests = quests.length + completedQuests.length;
+  
+  // 진행률 = 완료된 퀘스트 / 오늘 해야 할 퀘스트
+  const progress = todayTotalQuests > 0 
+    ? Math.min((completedQuests.length / todayTotalQuests) * 100, 100)
+    : 0;
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -88,11 +93,11 @@ export default function QuestBoard({
         {/* 진행률 바 */}
         <div className="mb-6">
           <div className="flex justify-between text-white mb-2">
-            <span>진행률</span>
+            <span>오늘의 퀘스트 진행률</span>
             <span>
-              {quests.length > 0 && completedQuests.length > quests.length
+              {todayTotalQuests > 0 && completedQuests.length >= todayTotalQuests
                 ? "100% (완료!)"
-                : `${Math.round(progress)}%`}
+                : `${Math.round(progress)}% (${completedQuests.length}/${todayTotalQuests})`}
             </span>
           </div>
           <div className="w-full bg-white/30 rounded-full h-4">
@@ -103,31 +108,41 @@ export default function QuestBoard({
               transition={{ duration: 0.8, ease: "easeOut" }}
             />
           </div>
-          {quests.length > 0 && completedQuests.length > quests.length && (
+          {todayTotalQuests > 0 && completedQuests.length >= todayTotalQuests && (
             <div className="text-center mt-2">
               <span className="text-green-400 text-sm font-medium">
-                🎉 모든 퀘스트를 완료했습니다! 추가 퀘스트를 완료하여 더 많은
-                포인트를 획득할 수 있어요!
+                🎉 오늘의 모든 퀘스트를 완료했습니다! 대단해요!
+              </span>
+            </div>
+          )}
+          {todayTotalQuests === 0 && (
+            <div className="text-center mt-2">
+              <span className="text-white/60 text-sm">
+                퀘스트를 선택해서 오늘의 목표를 설정해보세요!
               </span>
             </div>
           )}
         </div>
 
         {/* 통계 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+          <div className="bg-white/20 rounded-lg p-4">
+            <div className="text-2xl font-bold text-white">{todayTotalQuests}</div>
+            <div className="text-white/80">오늘의 퀘스트</div>
+          </div>
           <div className="bg-white/20 rounded-lg p-4">
             <div className="text-2xl font-bold text-white">{quests.length}</div>
-            <div className="text-white/80">선택된 퀘스트</div>
+            <div className="text-white/80">진행 중</div>
           </div>
           <div className="bg-white/20 rounded-lg p-4">
             <div className="text-2xl font-bold text-white">
               {completedQuests.length}
             </div>
-            <div className="text-white/80">완료된 퀘스트</div>
+            <div className="text-white/80">완료됨</div>
           </div>
           <div className="bg-white/20 rounded-lg p-4">
-            <div className="text-2xl font-bold text-white">{totalPoints}</div>
-            <div className="text-white/80">총 포인트</div>
+            <div className="text-2xl font-bold text-white">{completedPoints}</div>
+            <div className="text-white/80">획득한 포인트</div>
           </div>
         </div>
       </div>

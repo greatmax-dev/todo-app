@@ -1,56 +1,36 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { LogOut, Settings } from "lucide-react";
 
 import QuestSelector from "@/components/QuestSelector";
 import QuestBoard from "@/components/QuestBoard";
 import RewardShop from "@/components/RewardShop";
 import RewardHistory from "@/components/RewardHistory";
 import CharacterProfile from "@/components/CharacterProfile";
-import { Quest, User } from "@/types";
+import LoginForm from "@/components/LoginForm";
+import Ranking from "@/components/Ranking";
+import Teams from "@/components/Teams";
+import { useAuth } from "@/contexts/AuthContext";
+import { Quest } from "@/types";
 
 export default function Home() {
-  const [user, setUser] = useState<User>({
-    id: "1",
-    name: "수호",
-    level: 1,
-    experience: 0,
-    points: 0,
-    totalPoints: 0,
-    streak: 0,
-    lastLogin: new Date().toDateString(),
-  });
+  const { user: authUser, login, logout, isLoading } = useAuth();
 
   const [selectedQuests, setSelectedQuests] = useState<Quest[]>([]);
   const [completedQuests, setCompletedQuests] = useState<Quest[]>([]);
   const [activeTab, setActiveTab] = useState<
-    "quests" | "board" | "shop" | "history" | "profile"
+    "quests" | "board" | "shop" | "history" | "profile" | "ranking" | "teams"
   >("quests");
-
-  // 데이터베이스에서 사용자 정보 로드
-  useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        const response = await fetch(`/api/user/${user.id}`);
-        if (response.ok) {
-          const userData = await response.json();
-          setUser(userData);
-        }
-      } catch (error) {
-        console.error("사용자 데이터 로드 오류:", error);
-      }
-    };
-
-    loadUserData();
-  }, [user.id]);
 
   // 사용자 퀘스트 데이터 로드
   useEffect(() => {
+    if (!authUser?.id) return;
     const loadUserQuests = async () => {
       try {
         // 선택된 퀘스트 로드
         const selectedResponse = await fetch(
-          `/api/user/${user.id}/quests?status=selected`
+          `/api/user/${authUser.id}/quests?status=selected`
         );
         if (selectedResponse.ok) {
           const selectedData = await selectedResponse.json();
@@ -59,7 +39,7 @@ export default function Home() {
 
         // 완료된 퀘스트 로드
         const completedResponse = await fetch(
-          `/api/user/${user.id}/quests?status=completed`
+          `/api/user/${authUser.id}/quests?status=completed`
         );
         if (completedResponse.ok) {
           const completedData = await completedResponse.json();
@@ -70,26 +50,26 @@ export default function Home() {
       }
     };
 
-    if (user.id) {
-      loadUserQuests();
-    }
-  }, [user.id]);
+    loadUserQuests();
+  }, [authUser?.id]);
 
   // 일일 출석 보너스 체크
   useEffect(() => {
+    if (!authUser?.id) return;
+    
     const today = new Date().toDateString();
-    if (user.lastLogin !== today) {
+    if (authUser.lastLogin !== today) {
       const updateAttendance = async () => {
         try {
-          const newPoints = user.points + 5;
-          const newTotalPoints = user.totalPoints + 5;
+          const newPoints = authUser.points + 5;
+          const newTotalPoints = authUser.totalPoints + 5;
           const newStreak =
-            user.lastLogin ===
+            authUser.lastLogin ===
             new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString()
-              ? user.streak + 1
+              ? authUser.streak + 1
               : 1;
 
-          const response = await fetch(`/api/user/${user.id}`, {
+          const response = await fetch(`/api/user/${authUser.id}`, {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
@@ -103,13 +83,8 @@ export default function Home() {
           });
 
           if (response.ok) {
-            setUser((prev) => ({
-              ...prev,
-              points: newPoints,
-              totalPoints: newTotalPoints,
-              lastLogin: today,
-              streak: newStreak,
-            }));
+            const updatedUser = { ...authUser, points: newPoints, totalPoints: newTotalPoints, lastLogin: today, streak: newStreak };
+            login(updatedUser);
           }
         } catch (error) {
           console.error("출석 보너스 업데이트 오류:", error);
@@ -118,11 +93,29 @@ export default function Home() {
 
       updateAttendance();
     }
-  }, [user.lastLogin, user.id, user.points, user.totalPoints, user.streak]);
+  }, [authUser, login]);
+
+  // 로딩 중이거나 로그인하지 않은 경우 처리
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authUser) {
+    return <LoginForm onLogin={login} />;
+  }
 
   const completeQuest = async (quest: Quest) => {
+    if (!authUser?.id) return;
+    
     try {
-      const response = await fetch(`/api/user/${user.id}/quests/complete`, {
+      const response = await fetch(`/api/user/${authUser.id}/quests/complete`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -136,10 +129,10 @@ export default function Home() {
         setSelectedQuests((prev) => prev.filter((q) => q.id !== quest.id));
 
         // 사용자 정보 새로고침
-        const userResponse = await fetch(`/api/user/${user.id}`);
+        const userResponse = await fetch(`/api/user/${authUser.id}`);
         if (userResponse.ok) {
           const userData = await userResponse.json();
-          setUser(userData);
+          login(userData);
         }
       }
     } catch (error) {
@@ -148,8 +141,10 @@ export default function Home() {
   };
 
   const addQuest = async (quest: Quest) => {
+    if (!authUser?.id) return;
+    
     try {
-      const response = await fetch(`/api/user/${user.id}/quests`, {
+      const response = await fetch(`/api/user/${authUser.id}/quests`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -166,9 +161,11 @@ export default function Home() {
   };
 
   const removeQuest = async (questId: string) => {
+    if (!authUser?.id) return;
+    
     try {
       const response = await fetch(
-        `/api/user/${user.id}/quests?questId=${questId}`,
+        `/api/user/${authUser.id}/quests?questId=${questId}`,
         {
           method: "DELETE",
         }
@@ -183,10 +180,12 @@ export default function Home() {
   };
 
   const spendPoints = async (amount: number, rewardId?: string) => {
+    if (!authUser?.id) return;
+    
     try {
       if (rewardId) {
         // 보상 교환 시: 보상 사용 API 호출
-        const response = await fetch(`/api/user/${user.id}/rewards`, {
+        const response = await fetch(`/api/user/${authUser.id}/rewards`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -199,29 +198,27 @@ export default function Home() {
 
         if (response.ok) {
           // 보상 교환 성공 시 사용자 정보 새로고침
-          const userResponse = await fetch(`/api/user/${user.id}`);
+          const userResponse = await fetch(`/api/user/${authUser.id}`);
           if (userResponse.ok) {
             const userData = await userResponse.json();
-            setUser(userData);
+            login(userData);
           }
         }
       } else {
         // 일반 포인트 차감 시: 사용자 API 직접 호출
-        const response = await fetch(`/api/user/${user.id}`, {
+        const response = await fetch(`/api/user/${authUser.id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            points: user.points - amount,
+            points: authUser.points - amount,
           }),
         });
 
         if (response.ok) {
-          setUser((prev) => ({
-            ...prev,
-            points: prev.points - amount,
-          }));
+          const updatedUser = { ...authUser, points: authUser.points - amount };
+          login(updatedUser);
         }
       }
     } catch (error) {
@@ -235,14 +232,32 @@ export default function Home() {
       <header className="bg-white/20 backdrop-blur-md border-b border-white/30">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-white">수호의 일일 관리</h1>
+            <h1 className="text-3xl font-bold text-white">{authUser.nickname || authUser.name}의 일일 관리</h1>
             <div className="flex items-center space-x-4 text-white">
               <div className="bg-white/20 px-3 py-2 rounded-lg">
-                <span className="text-sm">⭐ {user.points} 포인트</span>
+                <span className="text-sm">⭐ {authUser.points} 포인트</span>
               </div>
               <div className="bg-white/20 px-3 py-2 rounded-lg">
-                <span className="text-sm">🔥 {user.streak}일 연속</span>
+                <span className="text-sm">🔥 {authUser.streak}일 연속</span>
               </div>
+              {authUser.isAdmin && (
+                <a
+                  href="/admin"
+                  className="bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded-lg transition-colors flex items-center space-x-2"
+                  title="관리자 페이지"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span className="text-sm">관리자</span>
+                </a>
+              )}
+              <button
+                onClick={logout}
+                className="bg-white/20 hover:bg-white/30 px-3 py-2 rounded-lg transition-colors flex items-center space-x-2"
+                title="로그아웃"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="text-sm">로그아웃</span>
+              </button>
             </div>
           </div>
         </div>
@@ -257,6 +272,8 @@ export default function Home() {
               { id: "board", label: "퀘스트 보드", icon: "📋" },
               { id: "shop", label: "보상 상점", icon: "🏪" },
               { id: "history", label: "교환 내역", icon: "📋" },
+              { id: "teams", label: "팀", icon: "👥" },
+              { id: "ranking", label: "랭킹", icon: "🏆" },
               { id: "profile", label: "내 캐릭터", icon: "👤" },
             ].map((tab) => (
               <button
@@ -269,6 +286,8 @@ export default function Home() {
                       | "shop"
                       | "history"
                       | "profile"
+                      | "ranking"
+                      | "teams"
                   )
                 }
                 className={`flex-1 py-3 px-4 rounded-t-lg transition-all ${
@@ -305,12 +324,16 @@ export default function Home() {
         )}
 
         {activeTab === "shop" && (
-          <RewardShop userPoints={user.points} onSpendPoints={spendPoints} />
+          <RewardShop userPoints={authUser.points} onSpendPoints={spendPoints} />
         )}
 
-        {activeTab === "history" && <RewardHistory userId={user.id} />}
+        {activeTab === "history" && <RewardHistory userId={authUser.id} />}
 
-        {activeTab === "profile" && <CharacterProfile user={user} />}
+        {activeTab === "teams" && <Teams />}
+
+        {activeTab === "ranking" && <Ranking />}
+
+        {activeTab === "profile" && <CharacterProfile user={authUser} />}
       </div>
     </main>
   );

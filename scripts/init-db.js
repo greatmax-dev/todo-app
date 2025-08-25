@@ -25,13 +25,16 @@ const initDatabase = () => {
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
+      name TEXT NOT NULL UNIQUE,
+      nickname TEXT,
+      password TEXT,
       level INTEGER DEFAULT 1,
       experience INTEGER DEFAULT 0,
       points INTEGER DEFAULT 0,
       totalPoints INTEGER DEFAULT 0,
       streak INTEGER DEFAULT 0,
       lastLogin TEXT NOT NULL,
+      isAdmin INTEGER DEFAULT 1,
       createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
       updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
     )
@@ -47,7 +50,9 @@ const initDatabase = () => {
       points INTEGER NOT NULL,
       category TEXT NOT NULL,
       icon TEXT NOT NULL,
-      createdAt TEXT DEFAULT CURRENT_TIMESTAMP
+      createdBy TEXT NOT NULL,
+      createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (createdBy) REFERENCES users (id)
     )
   `);
 
@@ -75,7 +80,9 @@ const initDatabase = () => {
       type TEXT NOT NULL,
       duration INTEGER,
       icon TEXT NOT NULL,
-      createdAt TEXT DEFAULT CURRENT_TIMESTAMP
+      createdBy TEXT NOT NULL,
+      createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (createdBy) REFERENCES users (id)
     )
   `);
 
@@ -91,6 +98,34 @@ const initDatabase = () => {
     )
   `);
 
+  // 팀 테이블
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS teams (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT,
+      leaderId TEXT NOT NULL,
+      maxMembers INTEGER DEFAULT 4,
+      createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (leaderId) REFERENCES users (id)
+    )
+  `);
+
+  // 팀 멤버 테이블
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS team_members (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      teamId TEXT NOT NULL,
+      userId TEXT NOT NULL,
+      role TEXT DEFAULT 'member', -- 'leader', 'member'
+      joinedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (teamId) REFERENCES teams (id),
+      FOREIGN KEY (userId) REFERENCES users (id),
+      UNIQUE(teamId, userId)
+    )
+  `);
+
   console.log("테이블 생성 완료");
 };
 
@@ -98,17 +133,29 @@ const initDatabase = () => {
 const insertDefaultData = () => {
   console.log("기본 데이터 삽입 중...");
 
+  // 기본 사용자 생성 (관리자 계정 포함) - 외래 키 제약 조건 때문에 먼저 생성
+  const insertDefaultUser = db.prepare(`
+    INSERT OR IGNORE INTO users (id, name, nickname, password, level, experience, points, totalPoints, streak, lastLogin, isAdmin)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  // 관리자 계정
+  insertDefaultUser.run("admin", "admin", "관리자", "admin123", 1, 0, 0, 0, 0, new Date().toISOString(), 1);
+  
+  // 일반 사용자 계정
+  insertDefaultUser.run("1", "수호", "수호", "", 1, 0, 0, 0, 0, new Date().toISOString(), 1);
+
   // 기본 퀘스트 데이터 삽입
   const insertDefaultQuests = db.prepare(`
-    INSERT OR IGNORE INTO quests (id, title, description, difficulty, points, category, icon)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT OR IGNORE INTO quests (id, title, description, difficulty, points, category, icon, createdBy)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const defaultQuests = [
-    ["1", "책상 정리", "책상을 정리", "easy", 10, "청소", "🧹"],
-    ["2", "베토 숙제(단어암기)", "단어 암기", "medium", 20, "학습", "📚"],
-    ["3", "베토 숙제(직독직해)", "직독직해 숙제", "medium", 20, "학습", "📚"],
-    ["4", "책 읽기", "책을 30페이지 이상 읽어요", "easy", 10, "학습", "📖"],
+    ["1", "책상 정리", "책상을 정리", "easy", 10, "청소", "🧹", "admin"],
+    ["2", "베토 숙제(단어암기)", "단어 암기", "medium", 20, "학습", "📚", "admin"],
+    ["3", "베토 숙제(직독직해)", "직독직해 숙제", "medium", 20, "학습", "📚", "admin"],
+    ["4", "책 읽기", "책을 30페이지 이상 읽어요", "easy", 10, "학습", "📖", "admin"],
     [
       "5",
       "스스로 수학공부",
@@ -117,10 +164,11 @@ const insertDefaultData = () => {
       20,
       "학습",
       "📚",
+      "admin",
     ],
-    ["6", "한우리 숙제", "한우리 숙제", "medium", 20, "학습", "📚"],
-    ["7", "국어 비문학 독해", "국어 비문학", "medium", 20, "학습", "📚"],
-    ["8", "운동하기", "친구와 탁구, 농구, 축구", "easy", 10, "건강", "💪"],
+    ["6", "한우리 숙제", "한우리 숙제", "medium", 20, "학습", "📚", "admin"],
+    ["7", "국어 비문학 독해", "국어 비문학", "medium", 20, "학습", "📚", "admin"],
+    ["8", "운동하기", "친구와 탁구, 농구, 축구", "easy", 10, "건강", "💪", "admin"],
     [
       "9",
       "가족 돕기",
@@ -129,6 +177,7 @@ const insertDefaultData = () => {
       10,
       "가족",
       "👨‍👩‍👧‍👦",
+      "admin",
     ],
     [
       "10",
@@ -138,6 +187,7 @@ const insertDefaultData = () => {
       30,
       "학습",
       "🚀",
+      "admin",
     ],
   ];
 
@@ -147,8 +197,8 @@ const insertDefaultData = () => {
 
   // 기본 보상 데이터 삽입
   const insertDefaultRewards = db.prepare(`
-    INSERT OR IGNORE INTO rewards (id, title, description, points, type, duration, icon)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT OR IGNORE INTO rewards (id, title, description, points, type, duration, icon, createdBy)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const defaultRewards = [
@@ -160,6 +210,7 @@ const insertDefaultData = () => {
       "youtube",
       10,
       "📺",
+      "admin",
     ],
     [
       "2",
@@ -169,6 +220,7 @@ const insertDefaultData = () => {
       "youtube",
       20,
       "📺",
+      "admin",
     ],
     [
       "3",
@@ -178,6 +230,7 @@ const insertDefaultData = () => {
       "game",
       15,
       "🎮",
+      "admin",
     ],
     [
       "4",
@@ -187,6 +240,7 @@ const insertDefaultData = () => {
       "game",
       30,
       "🎮",
+      "admin",
     ],
     [
       "5",
@@ -196,22 +250,15 @@ const insertDefaultData = () => {
       "game",
       60,
       "🎮",
+      "admin",
     ],
-    ["6", "용돈 1000원 교환권", "용돈 1000원", 1000, "money", 0, "💰"],
-    ["7", "특별 뽀나스(현질)", "현질 5000원", 60, "money", 0, "💰"],
+    ["6", "용돈 1000원 교환권", "용돈 1000원", 1000, "money", 0, "💰", "admin"],
+    ["7", "특별 뽀나스(현질)", "현질 5000원", 60, "money", 0, "💰", "admin"],
   ];
 
   defaultRewards.forEach((reward) => {
     insertDefaultRewards.run(reward);
   });
-
-  // 기본 사용자 생성
-  const insertDefaultUser = db.prepare(`
-    INSERT OR IGNORE INTO users (id, name, level, experience, points, totalPoints, streak, lastLogin)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  insertDefaultUser.run("1", "수호", 1, 0, 0, 0, 0, new Date().toISOString());
 
   console.log("기본 데이터 삽입 완료");
 };

@@ -4,10 +4,11 @@ import { userService } from "@/lib/dbService";
 // 사용자 정보 조회
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = userService.getUser(params.id);
+    const { id } = await params;
+    const user = userService.getUser(id);
 
     if (!user) {
       return NextResponse.json(
@@ -29,13 +30,14 @@ export async function GET(
 // 사용자 정보 업데이트
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
 
     userService.updateUser({
-      id: params.id,
+      id,
       ...body,
     });
 

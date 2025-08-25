@@ -12,8 +12,10 @@ import {
   Cookie,
   Gift,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const AdminRewardManager: React.FC = () => {
+  const { user: authUser } = useAuth();
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,13 +37,18 @@ const AdminRewardManager: React.FC = () => {
   const fetchRewards = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/admin/rewards");
+      const response = await fetch("/api/admin/rewards", {
+        headers: {
+          "Authorization": `Bearer ${authUser?.id}`,
+        },
+      });
 
       if (response.ok) {
         const data = await response.json();
         setRewards(data);
       } else {
-        setError("보상을 불러올 수 없습니다.");
+        const errorData = await response.json();
+        setError(errorData.error || "보상을 불러올 수 없습니다.");
       }
     } catch (error) {
       setError(error + "보상 조회 중 오류가 발생했습니다.");
@@ -56,6 +63,7 @@ const AdminRewardManager: React.FC = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${authUser?.id}`,
         },
         body: JSON.stringify(formData),
       });

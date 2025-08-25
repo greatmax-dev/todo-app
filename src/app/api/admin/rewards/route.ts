@@ -1,11 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rewardService } from "@/lib/dbService";
 import db from "@/lib/database";
+import { checkAdminAuth } from "@/lib/adminAuth";
 
 // 모든 보상 조회 (관리자용)
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const rewards = rewardService.getAllRewards();
+    // 관리자 권한 체크
+    const authResult = await checkAdminAuth(request);
+    if (!authResult.isValid) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: 401 }
+      );
+    }
+
+    // 해당 사용자가 생성한 보상만 조회
+    const stmt = db.prepare("SELECT * FROM rewards WHERE createdBy = ? ORDER BY createdAt DESC");
+    const rewards = stmt.all(authResult.user.id);
     return NextResponse.json(rewards);
   } catch (error) {
     console.error("보상 조회 오류:", error);
@@ -19,6 +31,15 @@ export async function GET() {
 // 새 보상 생성
 export async function POST(request: NextRequest) {
   try {
+    // 관리자 권한 체크
+    const authResult = await checkAdminAuth(request);
+    if (!authResult.isValid) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { title, description, points, type, duration, icon } = body;
 
@@ -58,13 +79,13 @@ export async function POST(request: NextRequest) {
     // 새 보상 ID 생성
     const id = Math.random().toString(36).substr(2, 9);
 
-    // 보상 생성
+    // 보상 생성 (생성자 정보 포함)
     const stmt = db.prepare(`
-      INSERT INTO rewards (id, title, description, points, type, duration, icon)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO rewards (id, title, description, points, type, duration, icon, createdBy)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    stmt.run(id, title, description, points, type, duration || 0, icon);
+    stmt.run(id, title, description, points, type, duration || 0, icon, authResult.user.id);
 
     return NextResponse.json({
       message: "보상이 생성되었습니다.",

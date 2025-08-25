@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Quest } from "@/types";
 import { Plus, Edit, Trash2, Save, X } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const AdminQuestManager: React.FC = () => {
+  const { user: authUser } = useAuth();
   const [quests, setQuests] = useState<Quest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,13 +26,18 @@ const AdminQuestManager: React.FC = () => {
   const fetchQuests = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/admin/quests");
+      const response = await fetch("/api/admin/quests", {
+        headers: {
+          "Authorization": `Bearer ${authUser?.id}`,
+        },
+      });
 
       if (response.ok) {
         const data = await response.json();
         setQuests(data);
       } else {
-        setError("퀘스트를 불러올 수 없습니다.");
+        const errorData = await response.json();
+        setError(errorData.error || "퀘스트를 불러올 수 없습니다.");
       }
     } catch (error) {
       setError(error + "퀘스트 조회 중 오류가 발생했습니다.");
@@ -45,6 +52,7 @@ const AdminQuestManager: React.FC = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${authUser?.id}`,
         },
         body: JSON.stringify(formData),
       });

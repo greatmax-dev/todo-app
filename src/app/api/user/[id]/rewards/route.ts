@@ -4,13 +4,14 @@ import { rewardService, userService } from "@/lib/dbService";
 // 사용자 보상 사용 기록 조회
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const rewards = rewardService.getUserRewards(params.id);
+    const { id } = await params;
+    const rewards = rewardService.getUserRewards(id);
 
     // 사용자 정보도 함께 반환
-    const user = userService.getUser(params.id);
+    const user = userService.getUser(id);
 
     return NextResponse.json({
       rewards: rewards,
@@ -42,14 +43,15 @@ export async function GET(
 // 보상 사용
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const { rewardId, points } = body;
 
     // 사용자 정보 가져오기
-    const user = userService.getUser(params.id);
+    const user = userService.getUser(id);
     if (!user) {
       return NextResponse.json(
         { error: "사용자를 찾을 수 없습니다." },
@@ -69,13 +71,13 @@ export async function POST(
     const rewardIds = rewardId.split(",").map((id: string) => id.trim());
 
     // 각 보상에 대해 사용 기록 추가
-    rewardIds.forEach((id: string) => {
-      rewardService.useReward(params.id, id);
+    rewardIds.forEach((rewardIdItem: string) => {
+      rewardService.useReward(id, rewardIdItem);
     });
 
     // 사용자 포인트 차감
     userService.updateUser({
-      id: params.id,
+      id,
       points: user.points - points,
     });
 

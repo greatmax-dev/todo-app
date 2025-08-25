@@ -20,13 +20,16 @@ const initDatabase = () => {
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
+      name TEXT NOT NULL UNIQUE,
+      nickname TEXT,
+      password TEXT,
       level INTEGER DEFAULT 1,
       experience INTEGER DEFAULT 0,
       points INTEGER DEFAULT 0,
       totalPoints INTEGER DEFAULT 0,
       streak INTEGER DEFAULT 0,
       lastLogin TEXT NOT NULL,
+      isAdmin INTEGER DEFAULT 1,
       createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
       updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
     )
@@ -42,7 +45,9 @@ const initDatabase = () => {
       points INTEGER NOT NULL,
       category TEXT NOT NULL,
       icon TEXT NOT NULL,
-      createdAt TEXT DEFAULT CURRENT_TIMESTAMP
+      createdBy TEXT NOT NULL,
+      createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (createdBy) REFERENCES users (id)
     )
   `);
 
@@ -70,7 +75,9 @@ const initDatabase = () => {
       type TEXT NOT NULL,
       duration INTEGER,
       icon TEXT NOT NULL,
-      createdAt TEXT DEFAULT CURRENT_TIMESTAMP
+      createdBy TEXT NOT NULL,
+      createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (createdBy) REFERENCES users (id)
     )
   `);
 
@@ -83,6 +90,34 @@ const initDatabase = () => {
       usedAt TEXT DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (userId) REFERENCES users (id),
       FOREIGN KEY (rewardId) REFERENCES rewards (id)
+    )
+  `);
+
+  // 팀 테이블
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS teams (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT,
+      leaderId TEXT NOT NULL,
+      maxMembers INTEGER DEFAULT 4,
+      createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (leaderId) REFERENCES users (id)
+    )
+  `);
+
+  // 팀 멤버 테이블
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS team_members (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      teamId TEXT NOT NULL,
+      userId TEXT NOT NULL,
+      role TEXT DEFAULT 'member', -- 'leader', 'member'
+      joinedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (teamId) REFERENCES teams (id),
+      FOREIGN KEY (userId) REFERENCES users (id),
+      UNIQUE(teamId, userId)
     )
   `);
 

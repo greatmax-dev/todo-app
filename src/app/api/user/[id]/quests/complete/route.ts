@@ -4,14 +4,15 @@ import { questService, userService } from "@/lib/dbService";
 // 퀘스트 완료
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const { questId } = body;
 
     // 사용자 정보 가져오기
-    const user = userService.getUser(params.id);
+    const user = userService.getUser(id);
     if (!user) {
       return NextResponse.json(
         { error: "사용자를 찾을 수 없습니다." },
@@ -32,8 +33,8 @@ export async function POST(
 
     // 퀘스트 완료 처리
     try {
-      questService.completeQuest(params.id, questId);
-      console.log(`퀘스트 완료 성공: userId=${params.id}, questId=${questId}`);
+      questService.completeQuest(id, questId);
+      console.log(`퀘스트 완료 성공: userId=${id}, questId=${questId}`);
     } catch (questError) {
       console.error("퀘스트 완료 실패:", questError);
       throw questError;
@@ -46,7 +47,7 @@ export async function POST(
 
     try {
       userService.updateUser({
-        id: params.id,
+        id,
         points: newPoints,
         totalPoints: user.totalPoints + quest.points,
         experience: newExperience,
